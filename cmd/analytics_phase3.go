@@ -367,12 +367,7 @@ func buildConsistencyReport(workouts []api.Workout, months, target int, now time
 	if report.OverallTarget > 0 {
 		report.OverallHitRate = float64(report.OverallSessions) / float64(report.OverallTarget)
 	}
-	weeks := make([]time.Time, 0, len(weeklySessions))
-	for week := range weeklySessions {
-		weeks = append(weeks, week)
-	}
-	sort.Slice(weeks, func(i, j int) bool { return weeks[i].After(weeks[j]) })
-	for _, week := range weeks {
+	for week := weekStart(now); !week.Before(weekStart(start)); week = week.AddDate(0, 0, -7) {
 		if weeklySessions[week] >= target {
 			report.CurrentTargetStreak++
 			continue
@@ -430,12 +425,18 @@ func buildExerciseSessions(workouts []api.Workout) map[string][]exerciseSessionP
 				if set.Type == "warmup" {
 					continue
 				}
-				if set.WeightKG != nil && *set.WeightKG > point.WeightKG {
-					point.WeightKG = *set.WeightKG
+				if set.WeightKG != nil {
+					reps := 0
+					if set.Reps != nil {
+						reps = *set.Reps
+					}
+					if *set.WeightKG > point.WeightKG || (*set.WeightKG == point.WeightKG && reps > point.Reps) {
+						point.WeightKG = *set.WeightKG
+						point.Reps = reps
+					}
 				}
 				if set.WeightKG != nil && set.Reps != nil {
 					point.VolumeKG += *set.WeightKG * float64(*set.Reps)
-					point.Reps += *set.Reps
 				}
 				if set.RPE != nil {
 					rpeTotal += *set.RPE
@@ -521,14 +522,18 @@ func buildSupersetPairs(workouts []api.Workout) []supersetPair {
 				continue
 			}
 			sort.Strings(titles)
-			pairKey := strings.Join(titles, " + ")
-			entry := tally[pairKey]
-			if entry == nil {
-				entry = &supersetPair{Pair: pairKey}
-				tally[pairKey] = entry
+			for i := 0; i < len(titles)-1; i++ {
+				for j := i + 1; j < len(titles); j++ {
+					pairKey := titles[i] + " + " + titles[j]
+					entry := tally[pairKey]
+					if entry == nil {
+						entry = &supersetPair{Pair: pairKey}
+						tally[pairKey] = entry
+					}
+					entry.Count++
+					entry.LastUsed = item.Start
+				}
 			}
-			entry.Count++
-			entry.LastUsed = item.Start
 		}
 	}
 	result := make([]supersetPair, 0, len(tally))
