@@ -5,11 +5,12 @@ import (
 	"os"
 
 	"github.com/dhruvkelawala/go-hevy/cmd"
+	"github.com/fatih/color"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		color.New(color.FgRed).Fprintln(os.Stderr, fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
 }

@@ -25,6 +25,9 @@ type appContext struct {
 	outputMode outputMode
 	page       int
 	pageSize   int
+	weightUnit string
+	weightKG   bool
+	weightLBS  bool
 }
 
 var app appContext
@@ -53,6 +56,9 @@ func init() {
 	rootCmd.PersistentFlags().Bool("compact", false, "Output compact one-line summaries")
 	rootCmd.PersistentFlags().IntVar(&app.page, "page", 1, "Page number for list commands")
 	rootCmd.PersistentFlags().IntVar(&app.pageSize, "page-size", 5, "Page size for list commands")
+	rootCmd.PersistentFlags().StringVar(&app.weightUnit, "unit", "kg", "Weight unit: kg or lbs")
+	rootCmd.PersistentFlags().BoolVar(&app.weightKG, "kg", false, "Display weights in kilograms")
+	rootCmd.PersistentFlags().BoolVar(&app.weightLBS, "lbs", false, "Display weights in pounds")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		cfg, err := appconfig.Load()
@@ -71,6 +77,18 @@ func init() {
 		}
 		if jsonFlag && compactFlag {
 			return fmt.Errorf("--json and --compact cannot be used together")
+		}
+		if app.weightKG && app.weightLBS {
+			return fmt.Errorf("--kg and --lbs cannot be used together")
+		}
+		if app.weightKG {
+			app.weightUnit = "kg"
+		}
+		if app.weightLBS {
+			app.weightUnit = "lbs"
+		}
+		if app.weightUnit != "kg" && app.weightUnit != "lbs" {
+			return fmt.Errorf("--unit must be kg or lbs")
 		}
 		app.outputMode = outputTable
 		if jsonFlag {
@@ -94,6 +112,11 @@ func init() {
 	rootCmd.AddCommand(exerciseCmd)
 	rootCmd.AddCommand(historyCmd)
 	rootCmd.AddCommand(meCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(progressCmd)
+	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(lastCmd)
+	rootCmd.AddCommand(completionCmd)
 }
 
 func clientFromConfig() (*api.Client, error) {

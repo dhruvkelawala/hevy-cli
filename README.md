@@ -51,17 +51,25 @@ Environment variables take precedence over the config file.
 | Command | Description |
 | --- | --- |
 | `hevy workouts` | List recent workouts |
+| `hevy workouts --limit 20` | Show more workouts |
+| `hevy workouts --all` | Fetch all workouts |
 | `hevy workouts --json` | List workouts as JSON |
 | `hevy workout <id>` | Show workout details |
 | `hevy workout create -f workout.json` | Create a workout from JSON |
 | `hevy workout update <id> -f workout.json` | Update a workout from JSON |
 | `hevy count` | Show total workout count |
+| `hevy last` | Show the latest workout |
 | `hevy routines` | List routines |
 | `hevy routine <id>` | Show routine details |
 | `hevy exercises` | List exercise templates |
+| `hevy exercises --search bench` | Search exercises by name |
+| `hevy exercises --muscle chest --custom` | Filter exercises |
 | `hevy exercise <id>` | Show exercise template details |
 | `hevy history <exercise-id>` | Show exercise history |
+| `hevy progress <exercise-name>` | Show ASCII progression chart |
+| `hevy export --format csv` | Export workouts to CSV |
 | `hevy me` | Show user info |
+| `hevy status` | Verify API key and show account summary |
 
 ### Utility
 
@@ -86,6 +94,7 @@ Examples:
 hevy workouts
 hevy workouts --json
 hevy workout <id> --compact
+hevy workout <id> --lbs
 ```
 
 ## Pagination
@@ -95,6 +104,8 @@ List commands support:
 ```bash
 hevy workouts --page 2 --page-size 5
 hevy exercises --page-size 25
+hevy workouts --limit 20
+hevy workouts --all
 ```
 
 Page size limits:
@@ -135,6 +146,14 @@ Page size limits:
 
 ```bash
 hevy workouts --json | jq '.workouts[] | {id, title, start_time}'
+```
+
+## Shell completions
+
+```bash
+hevy completion zsh > ~/.zsh/completions/_hevy
+hevy completion bash > /etc/bash_completion.d/hevy
+hevy completion fish > ~/.config/fish/completions/hevy.fish
 ```
 
 ## Development

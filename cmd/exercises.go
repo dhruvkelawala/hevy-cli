@@ -10,6 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var exerciseSearch string
+var exerciseMuscle string
+var exerciseCustomOnly bool
+
 var exercisesCmd = &cobra.Command{
 	Use:   "exercises",
 	Short: "List exercise templates",
@@ -25,6 +29,7 @@ var exercisesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		resp.ExerciseTemplates = filterExercises(resp.ExerciseTemplates, exerciseSearch, exerciseMuscle, exerciseCustomOnly)
 		switch app.outputMode {
 		case outputJSON:
 			return output.PrintJSON(os.Stdout, resp)
@@ -43,6 +48,12 @@ var exercisesCmd = &cobra.Command{
 			return nil
 		}
 	},
+}
+
+func init() {
+	exercisesCmd.Flags().StringVar(&exerciseSearch, "search", "", "Search exercises by name")
+	exercisesCmd.Flags().StringVar(&exerciseMuscle, "muscle", "", "Filter by primary or secondary muscle group")
+	exercisesCmd.Flags().BoolVar(&exerciseCustomOnly, "custom", false, "Show only custom exercises")
 }
 
 var exerciseCmd = &cobra.Command{

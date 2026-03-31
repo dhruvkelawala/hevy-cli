@@ -1,16 +1,24 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dhruvkelawala/go-hevy/internal/api"
 	appconfig "github.com/dhruvkelawala/go-hevy/internal/config"
 	"github.com/dhruvkelawala/go-hevy/internal/output"
+	"github.com/fatih/color"
 )
+
+const poundsPerKilogram = 2.2046226218
 
 func requirePositivePagination(page, pageSize, maxPageSize int) error {
 	if page < 1 {
@@ -49,7 +57,7 @@ func formatFloatPtr(v *float64) string {
 	if v == nil {
 		return "-"
 	}
-	return fmt.Sprintf("%.2f", *v)
+	return formatWeight(*v)
 }
 
 func formatIntPtr(v *int) string {
@@ -88,4 +96,237 @@ func configSource() string {
 		return "config_file"
 	}
 	return "unset"
+}
+
+func formatWeight(kg float64) string {
+	if app.weightUnit == "lbs" {
+		return fmt.Sprintf("%.1f", kg*poundsPerKilogram)
+	}
+	return fmt.Sprintf("%.2f", kg)
+}
+
+func weightHeader() string {
+	if app.weightUnit == "lbs" {
+		return "Weight LBS"
+	}
+	return "Weight KG"
+}
+
+func colorWorkoutTitle(title string) string {
+	return color.New(color.Bold).Sprint(title)
+}
+
+func colorSetType(set api.Set, isPR bool) string {
+	if isPR {
+		return color.New(color.FgGreen).Sprint(set.Type)
+	}
+	switch strings.ToLower(set.Type) {
+	case "warmup":
+		return color.New(color.FgYellow).Sprint(set.Type)
+	default:
+		return color.New(color.FgWhite).Sprint(set.Type)
+	}
+}
+
+func isPersonalRecord(weight *float64, bestSoFar float64) bool {
+	return weight != nil && *weight > bestSoFar
+}
+
+func matchExercise(ex api.ExerciseTemplate, query, muscle string, customOnly bool) bool {
+	if query != "" && !strings.Contains(strings.ToLower(ex.Title), strings.ToLower(query)) {
+		return false
+	}
+	if muscle != "" {
+		needle := strings.ToLower(strings.TrimSpace(muscle))
+		if strings.ToLower(ex.PrimaryMuscleGroup) != needle {
+			matched := false
+			for _, group := range ex.SecondaryMuscleGroups {
+				if strings.ToLower(group) == needle {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				return false
+			}
+		}
+	}
+	if customOnly && !ex.IsCustom {
+		return false
+	}
+	return true
+}
+
+func filterExercises(exercises []api.ExerciseTemplate, query, muscle string, customOnly bool) []api.ExerciseTemplate {
+	filtered := make([]api.ExerciseTemplate, 0, len(exercises))
+	for _, exercise := range exercises {
+		if matchExercise(exercise, query, muscle, customOnly) {
+			filtered = append(filtered, exercise)
+		}
+	}
+	return filtered
+}
+
+func fetchAllExercises(client *api.Client) ([]api.ExerciseTemplate, error) {
+	page := 1
+	all := []api.ExerciseTemplate{}
+	for {
+		resp, err := client.ListExercises(context.Background(), page, 100)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, resp.ExerciseTemplates...)
+		if page >= resp.PageCount || len(resp.ExerciseTemplates) == 0 {
+			break
+		}
+		page++
+	}
+	return all, nil
+}
+
+func fetchWorkouts(client *api.Client, startPage, limit int, fetchAll bool) ([]api.Workout, error) {
+	if fetchAll {
+		limit = 0
+	}
+	page := startPage
+	workouts := []api.Workout{}
+	for {
+		pageSize := 10
+		if !fetchAll && limit > 0 && limit-len(workouts) < pageSize {
+			pageSize = limit - len(workouts)
+		}
+		if pageSize <= 0 {
+			break
+		}
+		resp, err := client.ListWorkouts(context.Background(), page, pageSize)
+		if err != nil {
+			return nil, err
+		}
+		workouts = append(workouts, resp.Workouts...)
+		if len(resp.Workouts) == 0 || page >= resp.PageCount || (!fetchAll && limit > 0 && len(workouts) >= limit) {
+			break
+		}
+		page++
+	}
+	if !fetchAll && limit > 0 && len(workouts) > limit {
+		workouts = workouts[:limit]
+	}
+	return workouts, nil
+}
+
+func pickExerciseByName(exercises []api.ExerciseTemplate, name string) *api.ExerciseTemplate {
+	needle := strings.ToLower(strings.TrimSpace(name))
+	for _, exercise := range exercises {
+		if strings.ToLower(exercise.Title) == needle {
+			copy := exercise
+			return &copy
+		}
+	}
+	for _, exercise := range exercises {
+		if strings.Contains(strings.ToLower(exercise.Title), needle) {
+			copy := exercise
+			return &copy
+		}
+	}
+	return nil
+}
+
+type progressPoint struct {
+	Date   time.Time
+	Label  string
+	Weight float64
+}
+
+func buildProgressPoints(entries []api.ExerciseHistoryEntry) []progressPoint {
+	bestByWorkout := map[string]progressPoint{}
+	for _, entry := range entries {
+		if entry.WeightKG == nil || strings.TrimSpace(entry.WorkoutStartTime) == "" {
+			continue
+		}
+		date, err := time.Parse(time.RFC3339, entry.WorkoutStartTime)
+		if err != nil {
+			continue
+		}
+		current, ok := bestByWorkout[entry.WorkoutID]
+		if !ok || *entry.WeightKG > current.Weight {
+			bestByWorkout[entry.WorkoutID] = progressPoint{Date: date, Label: date.Format("Jan 02"), Weight: *entry.WeightKG}
+		}
+	}
+	points := make([]progressPoint, 0, len(bestByWorkout))
+	for _, point := range bestByWorkout {
+		points = append(points, point)
+	}
+	sort.Slice(points, func(i, j int) bool { return points[i].Date.Before(points[j].Date) })
+	return points
+}
+
+func renderProgressChart(title string, points []progressPoint, maxPoints int) []string {
+	if maxPoints > 0 && len(points) > maxPoints {
+		points = points[len(points)-maxPoints:]
+	}
+	lines := []string{fmt.Sprintf("%s — last %d sessions", title, len(points))}
+	if len(points) == 0 {
+		return append(lines, "No weighted history found.")
+	}
+	maxWeight := 0.0
+	for _, point := range points {
+		if point.Weight > maxWeight {
+			maxWeight = point.Weight
+		}
+	}
+	for _, point := range points {
+		width := 1
+		if maxWeight > 0 {
+			width = int((point.Weight / maxWeight) * 14)
+			if width < 1 {
+				width = 1
+			}
+		}
+		lines = append(lines, fmt.Sprintf("%s  %s%s  %s", point.Label, formatWeight(point.Weight), app.weightUnit, strings.Repeat("█", width)))
+	}
+	return lines
+}
+
+func workoutCSVRows(workouts []api.Workout) [][]string {
+	rows := [][]string{{"date", "workout_title", "exercise", "set_number", "type", "weight_kg", "reps", "rpe"}}
+	for _, workout := range workouts {
+		for _, exercise := range workout.Exercises {
+			for _, set := range exercise.Sets {
+				rows = append(rows, []string{
+					workout.StartTime,
+					workout.Title,
+					exercise.Title,
+					strconv.Itoa(set.Index),
+					set.Type,
+					csvFloat(set.WeightKG),
+					csvInt(set.Reps),
+					csvFloat(set.RPE),
+				})
+			}
+		}
+	}
+	return rows
+}
+
+func encodeCSV(rows [][]string) (string, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+	if err := writer.WriteAll(rows); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func csvFloat(v *float64) string {
+	if v == nil {
+		return ""
+	}
+	return strconv.FormatFloat(*v, 'f', -1, 64)
+}
+
+func csvInt(v *int) string {
+	if v == nil {
+		return ""
+	}
+	return strconv.Itoa(*v)
 }

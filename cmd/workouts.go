@@ -10,6 +10,8 @@ import (
 )
 
 var workoutFile string
+var workoutsLimit int
+var workoutsAll bool
 
 var workoutsCmd = &cobra.Command{
 	Use:   "workouts",
@@ -23,24 +25,29 @@ var workoutsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.ListWorkouts(contextForCommand(cmd), app.page, app.pageSize)
+		limit := app.pageSize
+		if workoutsLimit > 0 {
+			limit = workoutsLimit
+		}
+		workouts, err := fetchWorkouts(client, app.page, limit, workoutsAll)
 		if err != nil {
 			return err
 		}
+		resp := &api.PaginatedWorkouts{Page: app.page, Workouts: workouts}
 
 		switch app.outputMode {
 		case outputJSON:
 			return output.PrintJSON(os.Stdout, resp)
 		case outputCompact:
-			lines := make([]string, 0, len(resp.Workouts))
-			for _, workout := range resp.Workouts {
+			lines := make([]string, 0, len(workouts))
+			for _, workout := range workouts {
 				lines = append(lines, fmt.Sprintf("%s | %s | %s", workout.ID, workout.Title, formatTimestamp(workout.StartTime)))
 			}
 			return output.PrintCompact(os.Stdout, lines)
 		default:
-			rows := make([][]string, 0, len(resp.Workouts))
-			for _, workout := range resp.Workouts {
-				rows = append(rows, []string{workout.ID, workout.Title, formatTimestamp(workout.StartTime), formatTimestamp(workout.EndTime)})
+			rows := make([][]string, 0, len(workouts))
+			for _, workout := range workouts {
+				rows = append(rows, []string{workout.ID, colorWorkoutTitle(workout.Title), formatTimestamp(workout.StartTime), formatTimestamp(workout.EndTime)})
 			}
 			output.PrintTable(os.Stdout, []string{"ID", "Title", "Start", "End"}, rows)
 			return nil
@@ -110,6 +117,8 @@ var workoutUpdateCmd = &cobra.Command{
 func init() {
 	workoutCmd.AddCommand(workoutCreateCmd)
 	workoutCmd.AddCommand(workoutUpdateCmd)
+	workoutsCmd.Flags().IntVar(&workoutsLimit, "limit", 0, "Number of workouts to show (default 5)")
+	workoutsCmd.Flags().BoolVar(&workoutsAll, "all", false, "Fetch all workouts")
 	workoutCreateCmd.Flags().StringVarP(&workoutFile, "file", "f", "", "Path to workout JSON file")
 	workoutUpdateCmd.Flags().StringVarP(&workoutFile, "file", "f", "", "Path to workout JSON file")
 }
@@ -143,6 +152,7 @@ func renderWorkout(workout *api.Workout) error {
 	}
 
 	rows := [][2]string{{"id", workout.ID}, {"title", workout.Title}, {"description", output.ValueOrDash(workout.Description)}, {"start_time", formatTimestamp(workout.StartTime)}, {"end_time", formatTimestamp(workout.EndTime)}, {"created_at", formatTimestamp(workout.CreatedAt)}, {"updated_at", formatTimestamp(workout.UpdatedAt)}}
+	rows[1][1] = colorWorkoutTitle(rows[1][1])
 	output.PrintKeyValueTable(os.Stdout, rows)
 
 	if len(workout.Exercises) > 0 {
@@ -160,10 +170,15 @@ func renderWorkout(workout *api.Workout) error {
 		}
 		fmt.Fprintf(os.Stdout, "\n%s\n", output.ValueOrDash(exercise.Title))
 		setRows := make([][]string, 0, len(exercise.Sets))
+		bestWeight := 0.0
 		for _, set := range exercise.Sets {
-			setRows = append(setRows, []string{fmt.Sprintf("%d", set.Index), set.Type, formatFloatPtr(set.WeightKG), formatIntPtr(set.Reps), formatIntPtr(set.DistanceMeters), formatIntPtr(set.DurationSeconds), formatFloatPtr(set.RPE)})
+			pr := isPersonalRecord(set.WeightKG, bestWeight)
+			if set.WeightKG != nil && *set.WeightKG > bestWeight {
+				bestWeight = *set.WeightKG
+			}
+			setRows = append(setRows, []string{fmt.Sprintf("%d", set.Index), colorSetType(set, pr), formatFloatPtr(set.WeightKG), formatIntPtr(set.Reps), formatIntPtr(set.DistanceMeters), formatIntPtr(set.DurationSeconds), formatFloatPtr(set.RPE)})
 		}
-		output.PrintTable(os.Stdout, []string{"#", "Type", "Weight KG", "Reps", "Distance M", "Duration S", "RPE"}, setRows)
+		output.PrintTable(os.Stdout, []string{"#", "Type", weightHeader(), "Reps", "Distance M", "Duration S", "RPE"}, setRows)
 	}
 
 	return nil
