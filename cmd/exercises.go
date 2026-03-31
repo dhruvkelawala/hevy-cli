@@ -66,9 +66,9 @@ func init() {
 }
 
 var exerciseCmd = &cobra.Command{
-	Use:   "exercise",
+	Use:   "exercise <exercise-id>",
 	Short: "Get an exercise template",
-	Args:  cobra.ExactArgs(1),
+	Args:  requireSingleIdentifierArg("exercise-id"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := clientFromConfig()
 		if err != nil {

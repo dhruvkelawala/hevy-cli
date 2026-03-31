@@ -45,9 +45,9 @@ var routinesCmd = &cobra.Command{
 }
 
 var routineCmd = &cobra.Command{
-	Use:   "routine",
+	Use:   "routine <routine-id>",
 	Short: "Get a routine",
-	Args:  cobra.ExactArgs(1),
+	Args:  requireSingleIdentifierArg("routine-id"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := clientFromConfig()
 		if err != nil {

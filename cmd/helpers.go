@@ -16,6 +16,7 @@ import (
 	appconfig "github.com/dhruvkelawala/hevy-cli/internal/config"
 	"github.com/dhruvkelawala/hevy-cli/internal/output"
 	"github.com/fatih/color"
+	"github.com/spf13/cobra"
 )
 
 const poundsPerKilogram = 2.2046226218
@@ -28,6 +29,37 @@ func requirePositivePagination(page, pageSize, maxPageSize int) error {
 		return fmt.Errorf("page-size must be between 1 and %d", maxPageSize)
 	}
 	return nil
+}
+
+func requireSingleIdentifierArg(argName string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) == 1 {
+			return nil
+		}
+		return fmt.Errorf("requires exactly 1 argument: <%s>\nUsage: %s", argName, usageLineWithArg(cmd, argName))
+	}
+}
+
+func usageLineWithArg(cmd *cobra.Command, argName string) string {
+	if cmd == nil {
+		return fmt.Sprintf("<%s>", argName)
+	}
+	commandPath := strings.TrimSpace(cmd.CommandPath())
+	if commandPath == "" {
+		commandPath = strings.TrimSpace(strings.Fields(cmd.Use)[0])
+	}
+	return fmt.Sprintf("%s <%s>", commandPath, argName)
+}
+
+func historyEmptyStateLines(exerciseTemplateID string, filtered bool) []string {
+	lines := []string{
+		fmt.Sprintf("No logged history found for exercise template ID %s.", exerciseTemplateID),
+		"Use an ID from `hevy exercises` or a workout's `exercise_template_id`. This command only shows sets already logged in your account.",
+	}
+	if filtered {
+		lines = append(lines, "Tip: widen or remove --start-date/--end-date if you expected older entries.")
+	}
+	return lines
 }
 
 func readWorkoutRequestFile(path string) (api.CreateWorkoutRequest, error) {

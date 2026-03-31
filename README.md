@@ -65,7 +65,7 @@ Environment variables take precedence over the config file.
 | `hevy exercises --search bench` | Search exercises by name |
 | `hevy exercises --muscle chest --custom` | Filter exercises |
 | `hevy exercise <id>` | Show exercise template details |
-| `hevy history <exercise-id>` | Show exercise history |
+| `hevy history <exercise-template-id>` | Show exercise history |
 | `hevy progress <exercise-name>` | Show ASCII progression chart |
 | `hevy export --format csv` | Export workouts to CSV |
 | `hevy me` | Show user info |

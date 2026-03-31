@@ -1,12 +1,54 @@
 package cmd
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/dhruvkelawala/hevy-cli/internal/api"
+	"github.com/spf13/cobra"
 )
+
+func TestDetailCommandsAdvertiseRequiredIDs(t *testing.T) {
+	if routineCmd.Use != "routine <routine-id>" {
+		t.Fatalf("unexpected routine usage: %q", routineCmd.Use)
+	}
+	if exerciseCmd.Use != "exercise <exercise-id>" {
+		t.Fatalf("unexpected exercise usage: %q", exerciseCmd.Use)
+	}
+	if historyCmd.Use != "history <exercise-template-id>" {
+		t.Fatalf("unexpected history usage: %q", historyCmd.Use)
+	}
+	if !strings.Contains(historyCmd.Long, "hevy exercises") {
+		t.Fatalf("expected history help to explain ID source, got %q", historyCmd.Long)
+	}
+	if !strings.Contains(historyCmd.Example, "hevy history 7EB3F7C3") {
+		t.Fatalf("expected history example to stay accurate, got %q", historyCmd.Example)
+	}
+}
+
+func TestRequireSingleIdentifierArg(t *testing.T) {
+	root := &cobra.Command{Use: "hevy"}
+	cmd := &cobra.Command{Use: "routine <routine-id>"}
+	root.AddCommand(cmd)
+
+	if err := requireSingleIdentifierArg("routine-id")(cmd, []string{"abc123"}); err != nil {
+		t.Fatalf("expected single arg to pass, got %v", err)
+	}
+
+	err := requireSingleIdentifierArg("routine-id")(cmd, nil)
+	if err == nil {
+		t.Fatal("expected missing arg error")
+	}
+	if !strings.Contains(err.Error(), "requires exactly 1 argument: <routine-id>") {
+		t.Fatalf("unexpected arg error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "Usage: hevy routine <routine-id>") {
+		t.Fatalf("expected usage line in error, got %v", err)
+	}
+}
 
 func TestFilterExercises(t *testing.T) {
 	exercises := []api.ExerciseTemplate{
@@ -195,6 +237,58 @@ func TestBuildVolumePointsAndChart(t *testing.T) {
 	}
 	if !strings.Contains(chart[1], "█") || !strings.Contains(chart[2], "█") {
 		t.Fatalf("expected chart bars, got %#v", chart)
+	}
+}
+
+func TestHistoryEmptyStateLines(t *testing.T) {
+	lines := historyEmptyStateLines("3BC06AD3", true)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "No logged history found for exercise template ID 3BC06AD3.") {
+		t.Fatalf("unexpected empty state: %q", joined)
+	}
+	if !strings.Contains(joined, "hevy exercises") {
+		t.Fatalf("expected ID source hint, got %q", joined)
+	}
+	if !strings.Contains(joined, "--start-date/--end-date") {
+		t.Fatalf("expected filtered history tip, got %q", joined)
+	}
+}
+
+func TestRenderExerciseHistoryEmptyState(t *testing.T) {
+	originalMode := app.outputMode
+	defer func() { app.outputMode = originalMode }()
+	app.outputMode = outputTable
+
+	buf := &bytes.Buffer{}
+	originalStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = originalStdout }()
+
+	done := make(chan error, 1)
+	go func() {
+		_, copyErr := buf.ReadFrom(r)
+		done <- copyErr
+	}()
+
+	if err := renderExerciseHistory("3BC06AD3", &api.ExerciseHistoryResponse{}, false); err != nil {
+		t.Fatalf("renderExerciseHistory returned error: %v", err)
+	}
+	_ = w.Close()
+	if err := <-done; err != nil {
+		t.Fatalf("read stdout: %v", err)
+	}
+	_ = r.Close()
+
+	output := buf.String()
+	if !strings.Contains(output, "No logged history found for exercise template ID 3BC06AD3.") {
+		t.Fatalf("unexpected render output: %q", output)
+	}
+	if !strings.Contains(output, "exercise_template_id") {
+		t.Fatalf("expected ID source guidance, got %q", output)
 	}
 }
 
