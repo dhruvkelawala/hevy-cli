@@ -15,6 +15,7 @@ type Config struct {
 	APIKey       string `json:"api_key"`
 	Unit         string `json:"unit,omitempty"`
 	DefaultLimit int    `json:"default_limit,omitempty"`
+	WhoopPath    string `json:"whoop_path,omitempty"`
 }
 
 func ConfigDir() (string, error) {

@@ -90,6 +90,7 @@ func configRows() [][2]string {
 		{"api_key", output.ValueOrDash(appconfig.Redact(app.config.EffectiveAPIKey()))},
 		{"unit", output.ValueOrDash(app.config.Unit)},
 		{"default_limit", output.ValueOrDash(defaultLimit)},
+		{"whoop_path", output.ValueOrDash(app.config.WhoopPath)},
 		{"api_key_source", configSource()},
 	}
 }
@@ -234,6 +235,38 @@ func fetchWorkoutDetails(client *api.Client, workouts []api.Workout) ([]api.Work
 		detailed = append(detailed, *fullWorkout)
 	}
 	return detailed, nil
+}
+
+func ensureWorkoutDetails(client *api.Client, workouts []api.Workout) ([]api.Workout, error) {
+	for _, workout := range workouts {
+		if len(workout.Exercises) == 0 {
+			return fetchWorkoutDetails(client, workouts)
+		}
+	}
+	return workouts, nil
+}
+
+func fetchAllRoutines(client *api.Client) ([]api.Routine, error) {
+	page := 1
+	routines := []api.Routine{}
+	for {
+		resp, err := client.ListRoutines(context.Background(), page, 10)
+		if err != nil {
+			return nil, err
+		}
+		for _, routine := range resp.Routines {
+			fullRoutine, err := client.GetRoutine(context.Background(), routine.ID)
+			if err != nil {
+				return nil, err
+			}
+			routines = append(routines, *fullRoutine)
+		}
+		if page >= resp.PageCount || len(resp.Routines) == 0 {
+			break
+		}
+		page++
+	}
+	return routines, nil
 }
 
 func exerciseCatalogMap(exercises []api.ExerciseTemplate) map[string]api.ExerciseTemplate {
