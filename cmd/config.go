@@ -20,7 +20,6 @@ var configCmd = &cobra.Command{
 				"api_key":        appconfig.Redact(app.config.EffectiveAPIKey()),
 				"unit":           app.config.Unit,
 				"default_limit":  app.config.DefaultLimit,
-				"whoop_path":     app.config.WhoopPath,
 				"api_key_source": configSource(),
 			})
 		case outputCompact:
@@ -29,7 +28,6 @@ var configCmd = &cobra.Command{
 				fmt.Sprintf("api_key=%s", appconfig.Redact(app.config.EffectiveAPIKey())),
 				fmt.Sprintf("unit=%s", output.ValueOrDash(app.config.Unit)),
 				fmt.Sprintf("default_limit=%d", app.config.DefaultLimit),
-				fmt.Sprintf("whoop_path=%s", output.ValueOrDash(app.config.WhoopPath)),
 				fmt.Sprintf("api_key_source=%s", configSource()),
 			})
 		default:
@@ -62,8 +60,6 @@ var configSetCmd = &cobra.Command{
 				return fmt.Errorf("default_limit must be a positive integer")
 			}
 			cfg.DefaultLimit = limit
-		case "whoop_path":
-			cfg.WhoopPath = args[1]
 		default:
 			return fmt.Errorf("unsupported config key %q", args[0])
 		}
