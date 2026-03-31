@@ -72,6 +72,7 @@ func fetchWhoopRecovery(args ...string) (*whoopRecoveryResponse, error) {
 	}
 	cmdArgs := append([]string{scriptPath}, args...)
 	cmd := exec.Command("python3", cmdArgs...)
+	cmd.Env = append(os.Environ(), "PYTHONWARNINGS=ignore")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		message := strings.TrimSpace(string(output))
