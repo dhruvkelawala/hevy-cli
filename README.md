@@ -14,13 +14,10 @@
 
 A terminal client for [Hevy](https://www.hevyapp.com) built for AI coding agents — deterministic `--json` output, single-binary install, and a [SKILL.md](./SKILL.md) that any agent can pick up instantly.
 
-Built in one evening by [OpenClaw](https://openclaw.ai) + [Codex](https://openai.com/index/codex/) + [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
-
 <p>
   <a href="#-for-agents"><strong>Agent Setup</strong></a> ·
   <a href="#-what-can-it-do"><strong>Features</strong></a> ·
-  <a href="#-whoop-readiness"><strong>WHOOP</strong></a> ·
-  <a href="#-how-it-was-built"><strong>How It Was Built</strong></a>
+  <a href="#-whoop-readiness"><strong>WHOOP</strong></a>
 </p>
 
 </div>
@@ -272,29 +269,6 @@ hevy last --kg             # kilograms
 
 ---
 
-## 🧬 How It Was Built
-
-This entire CLI — 30+ commands across 3 phases — was built in a single evening by a team of AI agents.
-
-```
-SumoDeus (Opus)          wrote specs, tested, filed bugs
-        ↓
-OpenClaw task-dispatch   routed work to the right agent
-        ↓
-Codex / GPT-5 (Zeus)     wrote all Go code in isolated sessions
-        ↓
-Claude Code (Nemesis)    automated code review after each phase
-        ↓
-SumoDeus                 verified manually, dispatched next phase
-```
-
-- **[OpenClaw](https://openclaw.ai)** orchestrated the entire pipeline — task dispatch, agent routing, QA automation
-- **[Codex](https://openai.com/index/codex/)** (GPT-5) wrote every line of Go across all three phases
-- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** (Sonnet) caught trend calculation bugs in automated review
-
-The [SKILL.md](./SKILL.md) that ships with hevy-cli is the same file the agents used to understand and test the tool. It's agent-native by design, not by afterthought.
-
----
 
 ## 🛠️ Development
 
