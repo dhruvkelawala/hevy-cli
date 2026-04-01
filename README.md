@@ -281,6 +281,23 @@ hevy last --kg             # kilograms
 
 ---
 
+## 🧬 Built with AI Agents
+
+This entire CLI was built in a single evening by AI coding agents, orchestrated through [OpenClaw](https://github.com/openclaw/openclaw).
+
+| Layer | Tool | Role |
+|---|---|---|
+| **Orchestrator** | [OpenClaw](https://openclaw.ai) | Task dispatch, QA pipeline, agent coordination |
+| **Senior Coder** | [Codex](https://openai.com/index/codex/) (GPT-5) | Wrote all Go code across 3 phases — core CLI, analytics, WHOOP integration |
+| **Code Review** | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Sonnet) | Automated review after each phase, caught trend calculation bugs |
+| **Spec & QA** | SumoDeus (Opus) | Feature specs, manual testing, bug reports back to Codex |
+
+The workflow: SumoDeus wrote feature specs → dispatched tasks via OpenClaw's task-dispatch plugin → Codex (Zeus) implemented in isolated ACP sessions → Claude Code (Nemesis) ran automated QA → SumoDeus verified manually.
+
+30+ commands, 3 phases, one evening. The [SKILL.md](./SKILL.md) file lets any AI agent pick up and use hevy-cli immediately.
+
+---
+
 ## 🛠️ Development
 
 ```bash
