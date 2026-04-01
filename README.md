@@ -10,17 +10,57 @@
 
 <img src="./assets/hevy-cli-hero.png" alt="hevy-cli — crab lifting weights" width="100%" />
 
-**Give your AI agent a gym buddy.**
+**Make your AI agent the perfect personal trainer.**
 
-A terminal client for [Hevy](https://www.hevyapp.com) built for AI coding agents — deterministic `--json` output, single-binary install, and a [SKILL.md](./SKILL.md) that any agent can pick up instantly.
+A terminal client for [Hevy](https://www.hevyapp.com) that turns your AI agent into a fitness coach — it reads your workouts, detects plateaus, checks your recovery, and tells you what to train next. Deterministic `--json` output, single-binary install, and a [SKILL.md](./SKILL.md) any agent picks up instantly.
 
 <p>
-  <a href="#-for-agents"><strong>Agent Setup</strong></a> ·
-  <a href="#-what-can-it-do"><strong>Features</strong></a> ·
+  <a href="#-use-with-ai-agents"><strong>Use with AI Agents</strong></a> ·
+  <a href="#-install"><strong>Install</strong></a> ·
+  <a href="#-features"><strong>Features</strong></a> ·
   <a href="#-whoop-readiness"><strong>WHOOP</strong></a>
 </p>
 
 </div>
+
+---
+
+## 🤖 Use with AI Agents
+
+hevy-cli gives your agent everything it needs to coach you. No scraping, no browser, no API wrangling — just structured data from one binary.
+
+### What your agent can do with this
+
+| Agent task | Command | What it gets |
+|---|---|---|
+| "Should I train today?" | `hevy readiness --json` | WHOOP recovery + last session + muscle fatigue |
+| "What should I train?" | `hevy plan --json` | Days since each muscle group, suggested split |
+| "Am I stalling?" | `hevy plateau --json` | Exercises with no weight increase across sessions |
+| "How's my week?" | `hevy week --json` | Volume, sessions, duration, muscle coverage |
+| "Keep me accountable" | `hevy streak --json` | Consecutive training weeks, consistency % |
+| "Show my PRs" | `hevy pr --all --json` | Personal records across all exercises |
+
+### Setup for your agent
+
+```bash
+# 1. Install the binary
+curl -sL https://github.com/dhruvkelawala/hevy-cli/releases/latest/download/hevy_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz | tar xz -C /tmp && mv /tmp/hevy ~/.local/bin/
+
+# 2. Set the API key
+export GO_HEVY_API_KEY="your-hevy-api-key"
+
+# 3. Drop the skill file into your agent's workspace
+cp SKILL.md ~/.openclaw/workspace/skills/hevy-cli/
+```
+
+The [SKILL.md](./SKILL.md) tells agents how to install, authenticate, and use every command — it's the only file your agent needs.
+
+### Works with
+
+- **[OpenClaw](https://openclaw.ai)** — drop SKILL.md into the skills directory, agent auto-discovers it
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — add SKILL.md to your project, Claude Code reads it as context
+- **[Codex](https://openai.com/index/codex/)** — pipe `--json` output into agent context, or use AGENTS.md references
+- **Any agent framework** — it's a single binary with structured JSON output, no SDK needed
 
 ---
 
@@ -43,7 +83,7 @@ hevy init
 
 ---
 
-## 🤔 What can it do?
+## 🏋️ Features
 
 ### See your training at a glance
 
@@ -150,41 +190,6 @@ hevy config set whoop_path /path/to/whoop-tracker
 
 ---
 
-## 🤖 For Agents
-
-hevy-cli exists because AI agents need structured fitness data, not screenshots of an app. Every command supports `--json`, output is deterministic, and installation is a single `curl`.
-
-### Why agents need this
-
-- **Morning briefings** — your agent pulls WHOOP recovery + last workout + weekly stats and tells you whether to train today
-- **Plateau detection** — agent spots stalled lifts before you do, suggests deload or variation
-- **Accountability** — agent checks `hevy streak` and nudges you if you're slipping
-- **Programming** — agent reads your split, volume trends, and recovery to suggest what to train next
-
-### Agent quickstart
-
-```bash
-# 1. Drop SKILL.md into your agent's workspace
-cp SKILL.md ~/.openclaw/workspace/skills/hevy-cli/
-
-# 2. Set the API key
-export GO_HEVY_API_KEY="your-hevy-api-key"
-
-# 3. Agent can now use any command
-hevy readiness --json    # Should I train today?
-hevy plan --json         # What should I train?
-hevy plateau --json      # Am I stalling anywhere?
-hevy week --json         # Weekly summary
-```
-
-### Works with
-
-- **[OpenClaw](https://openclaw.ai)** — drop SKILL.md into skills directory, agent auto-discovers it
-- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** / **[Codex](https://openai.com/index/codex/)** — pass `--json` flag, pipe output into agent context
-- **Any agent framework** — it's just a binary with structured output, no SDK needed
-
----
-
 ## 📋 All 30+ Commands
 
 <details>
@@ -268,7 +273,6 @@ hevy last --kg             # kilograms
 ```
 
 ---
-
 
 ## 🛠️ Development
 
