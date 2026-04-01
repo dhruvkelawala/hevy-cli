@@ -1,120 +1,364 @@
 # hevy-cli
 
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go)](https://go.dev)
+<div align="center">
+
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CLI](https://img.shields.io/badge/interface-terminal-111827)](#quickstart)
+[![Hevy](https://img.shields.io/badge/data-Hevy-ef4444)](https://www.hevyapp.com)
+[![WHOOP](https://img.shields.io/badge/recovery-WHOOP-22c55e)](#readiness--recovery)
 
-`hevy-cli` is a Go CLI for the [Hevy](https://www.hevyapp.com) API. It gives you scriptable terminal access to workouts, routines, exercise templates, history, and profile data.
+**A fast, scriptable, AI-friendly terminal client for Hevy.**
 
-## Installation
+Track workouts, inspect routines, export data, analyze progress, detect plateaus, and combine training history with WHOOP recovery — all from the command line.
 
-### Go install
+</div>
 
+---
+
+## Why this exists
+
+Hevy has a great mobile app, but sometimes you want terminal-native access:
+
+- check your last workout without opening your phone
+- export your data for scripting or analysis
+- search exercises and routines quickly
+- inspect weekly volume, PRs, and training split
+- plug your training data into **OpenClaw**, **Claude Code**, **Codex**, or your own agent workflows
+
+`hevy-cli` gives you that layer.
+
+---
+
+## Highlights
+
+### Core Hevy access
+- workouts, workout counts, latest workout, today’s workout
+- routines and routine details
+- exercise template search + exercise details
+- machine-readable export (`csv`, JSON output)
+
+### Training analytics
+- streak tracking
+- PR detection
+- weekly summary
+- workout diffing
+- volume charts
+- muscle hit map
+- workout calendar
+- workout search
+- progression charts
+
+### Advanced insights
+- next workout suggestion (`plan`)
+- training consistency reports
+- plateau detection
+- superset usage analysis
+- fatigue signal detection from RPE
+- actual split analysis
+- all-time records vs current bests
+- time-efficiency / rest proxy analysis
+
+### Recovery integration
+- WHOOP-backed readiness scoring
+- recovery + training recommendations
+- recent recovery trend display
+
+### Agent-friendly UX
+- clean terminal output
+- JSON output for automation
+- compact output mode
+- shell completions
+- works well in scripts, TUI workflows, and coding agents
+
+---
+
+## Quickstart
+
+### Install
+
+#### Go install
 ```bash
 go install github.com/dhruvkelawala/hevy-cli@latest
 ```
 
-### Homebrew / binaries
-
-Homebrew and release binaries are published from GitHub Releases.
-
-## Quick start
-
+#### Build from source
 ```bash
-# Interactive setup
-hevy init
-
-# Recent workouts
-hevy workouts
-
-# Workout details
-hevy workout <id>
-
-# User profile
-hevy me
+git clone https://github.com/dhruvkelawala/hevy-cli.git
+cd hevy-cli
+go build -o hevy .
 ```
 
-## Authentication
+---
 
-Hevy uses an `api-key` header.
+## Setup
 
-You can configure it in either place:
+### Interactive setup
+```bash
+hevy init
+```
 
-- `~/.config/hevy-cli/config.json`
-- `GO_HEVY_API_KEY` environment variable
+### Or use an environment variable
+```bash
+export GO_HEVY_API_KEY="your-hevy-api-key"
+```
 
-Environment variables take precedence over the config file.
+### Or store it in config
+```bash
+hevy config set api_key "your-hevy-api-key"
+```
 
-## Commands
+Config precedence:
+1. `GO_HEVY_API_KEY`
+2. local config file
 
-### Core
+Default config path:
+```bash
+~/Library/Application Support/hevy-cli/config.json
+```
 
-| Command | Description |
-| --- | --- |
-| `hevy workouts` | List recent workouts |
-| `hevy workouts --limit 20` | Show more workouts |
-| `hevy workouts --all` | Fetch all workouts |
-| `hevy workouts --json` | List workouts as JSON |
-| `hevy workout <id>` | Show workout details |
-| `hevy workout create -f workout.json` | Create a workout from JSON |
-| `hevy workout update <id> -f workout.json` | Update a workout from JSON |
+---
+
+## First 60 seconds
+
+```bash
+# verify auth
+hevy status
+
+# who am i?
+hevy me
+
+# recent workouts
+hevy workouts --page-size 5
+
+# latest workout in detail
+hevy last
+
+# this week’s summary
+hevy week
+
+# personal records
+hevy pr --all
+```
+
+---
+
+## Command map
+
+## Core commands
+
+| Command | What it does |
+|---|---|
+| `hevy status` | Verify API access and show account summary |
+| `hevy me` | Show authenticated user profile |
 | `hevy count` | Show total workout count |
-| `hevy last` | Show the latest workout |
+| `hevy workouts` | List recent workouts |
+| `hevy workout <id>` | Show or mutate a workout |
+| `hevy last` | Show the most recent workout in detail |
+| `hevy today` | Show today’s workout if one exists |
 | `hevy routines` | List routines |
 | `hevy routine <id>` | Show routine details |
-| `hevy exercises` | List exercise templates |
-| `hevy exercises --search bench` | Search exercises by name |
-| `hevy exercises --muscle chest --custom` | Filter exercises |
+| `hevy exercises` | List/search exercise templates |
 | `hevy exercise <id>` | Show exercise template details |
-| `hevy history <exercise-template-id>` | Show exercise history |
-| `hevy progress <exercise-name>` | Show ASCII progression chart |
-| `hevy export --format csv` | Export workouts to CSV |
-| `hevy me` | Show user info |
-| `hevy status` | Verify API key and show account summary |
+| `hevy history <exercise-id>` | Show exercise history |
+| `hevy export --format csv` | Export workouts in machine-readable format |
 
-### Utility
+### Insight commands
 
-| Command | Description |
-| --- | --- |
-| `hevy init` | Interactive API key setup |
-| `hevy config` | Show current config |
-| `hevy config set key <value>` | Store API key in config |
+| Command | What it does |
+|---|---|
+| `hevy progress "Squat"` | ASCII progression chart for an exercise |
+| `hevy streak` | Weekly workout streak tracker |
+| `hevy pr` | Personal records by exercise |
+| `hevy week` | Weekly training summary |
+| `hevy diff` | Compare two workouts (defaults to last two) |
+| `hevy volume "Squat"` | Volume-over-time chart |
+| `hevy muscles` | Muscle groups hit this week |
+| `hevy calendar` | ASCII workout calendar |
+| `hevy search upper` | Search workouts by title or exercise name |
+
+### Advanced analytics
+
+| Command | What it does |
+|---|---|
+| `hevy plan` | Suggest your next workout |
+| `hevy consistency` | Show training consistency over time |
+| `hevy plateau` | Detect stalled exercises |
+| `hevy supersets` | Show most-used superset pairings |
+| `hevy fatigue` | Analyze RPE trends for fatigue signals |
+| `hevy split` | Analyze your actual training split |
+| `hevy records` | Compare all-time vs current bests |
+| `hevy rest` | Estimate workout time-efficiency |
+| `hevy readiness` | Combine recovery + training readiness |
+
+### Utility commands
+
+| Command | What it does |
+|---|---|
+| `hevy config` | Show/update configuration |
+| `hevy completion zsh` | Generate shell completions |
 | `hevy version` | Print version |
+| `hevy init` | Interactive configuration |
 
-## Output formats
+---
 
-All list/detail commands support:
+## Practical examples
 
-- table output (default)
-- JSON via `--json` / `-j`
-- compact via `--compact`
+### Training overview
+```bash
+hevy last
+hevy week
+hevy streak
+hevy calendar
+```
+
+### Strength tracking
+```bash
+hevy pr --all
+hevy progress "Bench Press"
+hevy volume "Squat"
+hevy plateau
+hevy records
+```
+
+### Programming your next session
+```bash
+hevy muscles
+hevy split
+hevy plan
+hevy readiness
+```
+
+### Data extraction
+```bash
+hevy workouts --json
+hevy exercises --search curl --json
+hevy export --format csv > workouts.csv
+```
+
+### Search and compare
+```bash
+hevy search upper
+hevy diff
+hevy history <exercise-id>
+```
+
+---
+
+## Readiness & recovery
+
+`hevy-cli` can use WHOOP data to make training recommendations.
+
+### Configure WHOOP integration
+```bash
+hevy config set whoop_path /path/to/whoop-tracker
+```
+
+### Run readiness
+```bash
+hevy readiness
+```
+
+Example output:
+```text
+🟢 WHOOP Recovery: 89% | HRV: 78ms | RHR: 56bpm
+Status: GREEN — full send. heavy compounds ok.
+Suggested: Pull
+```
+
+This is especially useful if you want your recovery state and recent training history in one place.
+
+---
+
+## AI Agents
+
+`hevy-cli` is built to work well with agents because it is:
+- scriptable
+- terminal-native
+- JSON-capable
+- deterministic enough for repeated command execution
+
+### OpenClaw
+Great fit for:
+- workout summaries
+- routine inspection
+- trend analysis
+- daily readiness checks
+- automated logging / reminders
 
 Examples:
-
 ```bash
-hevy workouts
-hevy workouts --json
-hevy workout <id> --compact
-hevy workout <id> --lbs
+hevy week --json
+hevy readiness
+hevy pr --all --json
 ```
+
+### Claude Code / Codex / Cursor / other coding agents
+Useful when you want an agent to:
+- inspect your recent training state
+- generate charts or reports from raw JSON
+- compare workouts
+- identify plateaus or consistency issues
+- build custom tooling on top of Hevy data
+
+Examples:
+```bash
+hevy workouts --json > workouts.json
+hevy exercises --json > exercises.json
+hevy records --json
+hevy consistency --json
+```
+
+### Recommended agent workflow
+```bash
+# 1. fetch data
+hevy workouts --json > workouts.json
+hevy week --json > week.json
+hevy readiness --json > readiness.json
+
+# 2. let your agent analyze/report from those files
+```
+
+---
+
+## Output modes
+
+Most commands support:
+- default table/text output
+- `--json` / `-j`
+- `--compact`
+- `--kg`
+- `--lbs`
+
+Examples:
+```bash
+hevy workouts --json
+hevy last --compact
+hevy volume "Squat" --lbs
+```
+
+---
 
 ## Pagination
 
-List commands support:
+List commands support paging:
 
 ```bash
 hevy workouts --page 2 --page-size 5
+hevy routines --page-size 10
 hevy exercises --page-size 25
 hevy workouts --limit 20
 hevy workouts --all
 ```
 
-Page size limits:
-
+Current API limits:
 - workouts: max 10
 - routines: max 10
 - exercises: max 100
 
-## Workout create/update JSON shape
+---
+
+## Create / update workout JSON shape
 
 ```json
 {
@@ -142,11 +386,7 @@ Page size limits:
 }
 ```
 
-## AI agent integration example
-
-```bash
-hevy workouts --json | jq '.workouts[] | {id, title, start_time}'
-```
+---
 
 ## Shell completions
 
@@ -156,16 +396,27 @@ hevy completion bash > /etc/bash_completion.d/hevy
 hevy completion fish > ~/.config/fish/completions/hevy.fish
 ```
 
+---
+
 ## Development
 
 ```bash
 go build ./...
 go test ./...
+go vet ./...
 ```
 
-## Release
+---
 
-GitHub Actions builds tagged releases for macOS, Linux, and Windows using GoReleaser.
+## Roadmap ideas
+
+- richer charts and sparklines
+- better exercise-history UX around IDs
+- richer export formats
+- release binaries + package manager distribution polish
+- more AI-agent example workflows
+
+---
 
 ## License
 
